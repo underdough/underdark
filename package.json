@@ -4,7 +4,6 @@
   "description": "Blog personal alternativo con estilo oscuro",
   "private": true,
   "scripts": {
-    "build": "echo 'Static site - no build needed'",
     "dev": "wrangler pages dev public --kv POSTS",
     "deploy": "wrangler pages deploy public",
     "create-kv": "wrangler kv namespace create POSTS"
