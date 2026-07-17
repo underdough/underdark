@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNDERDARK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #0a0a0f;
+      --neon-violet: #a855f7;
+      --neon-violet-dim: rgba(168, 85, 247, 0.3);
+      --neon-cyan: #22d3ee;
+      --text-primary: #e0dfe6;
+      --text-muted: #55556a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#void-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .noise-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .ritual-container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      opacity: 0;
+      animation: ritual-appear 2s ease 0.5s forwards;
+    }
+
+    @keyframes ritual-appear {
+      from { opacity: 0; transform: translateY(30px) scale(0.95); filter: blur(8px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    .glyph-ring {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+
+    .glyph-ring svg {
+      width: 100%;
+      height: 100%;
+      animation: glyph-rotate 20s linear infinite;
+    }
+
+    @keyframes glyph-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .glyph-ring .glyph-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      color: var(--neon-violet);
+      filter: drop-shadow(0 0 15px var(--neon-violet-dim));
+      animation: glyph-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes glyph-pulse {
+      0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 15px var(--neon-violet-dim)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 25px var(--neon-violet)); }
+    }
+
+    .ritual-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      opacity: 0;
+      animation: fade-up 1s ease 1s forwards;
+    }
+
+    .ritual-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      margin-bottom: 3rem;
+      opacity: 0;
+      animation: fade-up 1s ease 1.3s forwards;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .passage-input-wrap {
+      position: relative;
+      width: 320px;
+      margin: 0 auto 1.5rem;
+      opacity: 0;
+      animation: fade-up 1s ease 1.6s forwards;
+    }
+
+    .passage-input {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: transparent;
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 0;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-align: center;
+      outline: none;
+      transition: all 0.5s ease;
+      -webkit-text-security: disc;
+    }
+
+    .passage-input::placeholder {
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      -webkit-text-security: none;
+    }
+
+    .passage-input:focus {
+      border-color: var(--neon-violet);
+      box-shadow: 0 0 30px var(--neon-violet-dim), inset 0 0 30px rgba(168, 85, 247, 0.05);
+    }
+
+    .passage-input.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+      animation: shake 0.5s ease;
+    }
+
+    .passage-input.success {
+      border-color: #22c55e;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    .passage-lines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .passage-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-violet-dim), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .passage-input:focus ~ .passage-lines .passage-line {
+      opacity: 1;
+    }
+
+    .passage-line:nth-child(1) { top: 0; }
+    .passage-line:nth-child(2) { bottom: 0; }
+
+    .enter-btn {
+      background: transparent;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: var(--neon-violet);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      padding: 0.8rem 2.5rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      opacity: 0;
+      animation: fade-up 1s ease 1.9s forwards;
+    }
+
+    .enter-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.1), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .enter-btn:hover {
+      border-color: var(--neon-violet);
+      box-shadow: 0 0 25px var(--neon-violet-dim);
+      text-shadow: 0 0 10px var(--neon-violet);
+    }
+
+    .enter-btn:hover::before {
+      transform: translateX(100%);
+    }
+
+    .error-msg {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #ef4444;
+      margin-top: 1rem;
+      min-height: 1.2em;
+      letter-spacing: 0.05em;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .error-msg.visible {
+      opacity: 1;
+    }
+
+    .ritual-footer {
+      position: fixed;
+      bottom: 2rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      opacity: 0;
+      animation: fade-up 1s ease 2.2s forwards;
+    }
+
+    /* Enter animation */
+    body.entering {
+      animation: enter-portal 1.2s ease forwards;
+    }
+
+    @keyframes enter-portal {
+      0% { filter: blur(0); }
+      50% { filter: blur(8px); background: #000; }
+      100% { filter: blur(0); background: var(--bg-void); }
+    }
+
+    .glitch-text {
+      position: relative;
+      display: inline-block;
+    }
+
+    .glitch-text::before,
+    .glitch-text::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+    }
+
+    .passage-input:focus ~ .glitch-layer .glitch-text::before {
+      animation: glitch-1 3s infinite;
+      color: var(--neon-cyan);
+      opacity: 0.3;
+    }
+
+    @keyframes glitch-1 {
+      0%, 95%, 100% { opacity: 0; clip-path: inset(0 0 100% 0); }
+      96% { opacity: 0.3; clip-path: inset(20% 0 60% 0); transform: translate(-2px); }
+      97% { opacity: 0.3; clip-path: inset(60% 0 20% 0); transform: translate(2px); }
+      98% { opacity: 0.3; clip-path: inset(40% 0 40% 0); transform: translate(-1px); }
+    }
+
+    @media (max-width: 480px) {
+      .passage-input-wrap { width: 90%; }
+      .ritual-title { font-size: 1.3rem; letter-spacing: 0.2em; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="void-canvas"></canvas>
+  <div class="noise-overlay"></div>
+
+  <div class="ritual-container">
+    <div class="glyph-ring">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="55" fill="none" stroke="rgba(168,85,247,0.15)" stroke-width="0.5"/>
+        <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(168,85,247,0.1)" stroke-width="0.5" stroke-dasharray="4 8"/>
+        <circle cx="60" cy="60" r="35" fill="none" stroke="rgba(168,85,247,0.2)" stroke-width="0.5"/>
+        <path d="M60 5 L63 55 L60 60 L57 55 Z" fill="rgba(168,85,247,0.3)"/>
+        <path d="M60 115 L57 65 L60 60 L63 65 Z" fill="rgba(168,85,247,0.3)"/>
+        <path d="M5 60 L55 57 L60 60 L55 63 Z" fill="rgba(168,85,247,0.3)"/>
+        <path d="M115 60 L65 63 L60 60 L65 57 Z" fill="rgba(168,85,247,0.3)"/>
+        <circle cx="60" cy="5" r="2" fill="rgba(168,85,247,0.5)"/>
+        <circle cx="60" cy="115" r="2" fill="rgba(168,85,247,0.5)"/>
+        <circle cx="5" cy="60" r="2" fill="rgba(168,85,247,0.5)"/>
+        <circle cx="115" cy="60" r="2" fill="rgba(168,85,247,0.5)"/>
+      </svg>
+      <span class="glyph-center">⌬</span>
+    </div>
+
+    <h1 class="ritual-title glitch-text" data-text="UNDERDARK">UNDERDARK</h1>
+    <p class="ritual-subtitle">ingresa la palabra de paso</p>
+
+    <form id="ritual-form" autocomplete="off">
+      <div class="passage-input-wrap">
+        <input
+          type="password"
+          id="passage-input"
+          class="passage-input"
+          placeholder=". . ."
+          autofocus
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <div class="passage-lines">
+          <div class="passage-line"></div>
+          <div class="passage-line"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="enter-btn">ENTRAR AL ABISMO</button>
+    </form>
+
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <div class="ritual-footer">UNDERDARK v1.0 — lo que se escribe en la oscuridad, permanece en la oscuridad</div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    const canvas = document.getElementById('void-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: -1000, y: -1000 };
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    class VoidParticle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 1.5 + 0.3;
+        this.speedX = (Math.random() - 0.5) * 0.15;
+        this.speedY = (Math.random() - 0.5) * 0.15;
+        this.opacity = Math.random() * 0.4 + 0.05;
+        this.pulse = Math.random() * Math.PI * 2;
+        this.pulseSpeed = Math.random() * 0.01 + 0.003;
+        this.hue = Math.random() > 0.8 ? 270 : 250;
+      }
+      update() {
+        this.pulse += this.pulseSpeed;
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          const force = (120 - dist) / 120;
+          this.x -= (dx / dist) * force * 0.5;
+          this.y -= (dy / dist) * force * 0.5;
+        }
+
+        if (this.x < -10 || this.x > canvas.width + 10 ||
+            this.y < -10 || this.y > canvas.height + 10) {
+          this.reset();
+        }
+      }
+      draw() {
+        const p = Math.sin(this.pulse) * 0.3 + 0.7;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * p, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 60%, 65%, ${this.opacity * p})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 100; i++) {
+      particles.push(new VoidParticle());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `hsla(270, 50%, 60%, ${(1 - dist / 100) * 0.08})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    // Auth logic
+    const form = document.getElementById('ritual-form');
+    const input = document.getElementById('passage-input');
+    const errorMsg = document.getElementById('error-msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const passphrase = input.value.trim();
+      if (!passphrase) return;
+
+      errorMsg.classList.remove('visible');
+      input.classList.remove('error', 'success');
+      input.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passphrase })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          input.classList.add('success');
+          setAuthToken(data.token);
+          document.body.classList.add('entering');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          input.classList.add('error');
+          errorMsg.textContent = data.error || 'La oscuridad rechaza tu entrada';
+          errorMsg.classList.add('visible');
+          input.disabled = false;
+          input.value = '';
+          input.focus();
+        }
+      } catch (err) {
+        input.classList.add('error');
+        errorMsg.textContent = 'No se pudo conectar con el abismo';
+        errorMsg.classList.add('visible');
+        input.disabled = false;
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>

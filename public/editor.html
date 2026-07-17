@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNDERDARK — Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="/css/editor.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+
+  <nav class="navbar">
+    <a href="/" class="logo">
+      <span class="logo-glyph">⌬</span>
+      <span class="logo-text">UNDERDARK</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Escritos</a>
+      <a href="/constellation.html" class="nav-link">Constelación</a>
+      <a href="/editor.html" class="nav-link btn-write active">
+        <span class="btn-icon">✦</span> Escribir
+      </a>
+    </div>
+  </nav>
+
+  <main class="main-content editor-page">
+    <div class="editor-header">
+      <h1 class="editor-title" id="editor-title">Nuevo Escrito</h1>
+    </div>
+
+    <div class="editor-form">
+      <div class="form-group">
+        <label>Título</label>
+        <input type="text" id="post-title" placeholder="Un título desde la oscuridad..." class="input-dark">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tags (separados por coma)</label>
+          <input type="text" id="post-tags" placeholder="pensamientos, reflexión, noche" class="input-dark">
+        </div>
+        <div class="form-group">
+          <label>Estado de ánimo</label>
+          <select id="post-mood" class="input-dark">
+            <option value="">Sin definir</option>
+            <option value="🌑 Oscuridad profunda">🌑 Oscuridad profunda</option>
+            <option value="🔥 Fuego interior">🔥 Fuego interior</option>
+            <option value="🌀 Caos mental">🌀 Caos mental</option>
+            <option value="💧 Melancolía">💧 Melancolía</option>
+            <option value="⚡ Euforia oscura">⚡ Euforia oscura</option>
+            <option value="🌙 Serenidad nocturna">🌙 Serenidad nocturna</option>
+            <option value="💀 Vacío existencial">💀 Vacío existencial</option>
+            <option value="✦ Iluminación">✦ Iluminación</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Imagen de portada</label>
+        <div class="upload-zone" id="cover-upload">
+          <input type="file" id="cover-file" accept="image/*" hidden>
+          <div class="upload-placeholder" id="cover-placeholder">
+            <span class="upload-icon">🖼</span>
+            <p>Arrastra una imagen o haz clic para seleccionar</p>
+          </div>
+          <img id="cover-preview" class="cover-preview" style="display:none;">
+          <input type="text" id="cover-url" placeholder="O pega una URL de imagen" class="input-dark" style="display:none;">
+        </div>
+      </div>
+
+      <div class="form-group form-group-editor">
+        <label>Contenido (Markdown)</label>
+        <div class="editor-toolbar">
+          <button type="button" class="toolbar-btn" data-action="bold" title="Negrita"><b>B</b></button>
+          <button type="button" class="toolbar-btn" data-action="italic" title="Cursiva"><i>I</i></button>
+          <button type="button" class="toolbar-btn" data-action="heading" title="Título">H</button>
+          <button type="button" class="toolbar-btn" data-action="link" title="Enlace">🔗</button>
+          <button type="button" class="toolbar-btn" data-action="image" title="Imagen">🖼</button>
+          <button type="button" class="toolbar-btn" data-action="code" title="Código">&lt;/&gt;</button>
+          <button type="button" class="toolbar-btn" data-action="quote" title="Cita">❝</button>
+          <button type="button" class="toolbar-btn" data-action="list" title="Lista">☰</button>
+          <span class="toolbar-sep"></span>
+          <button type="button" class="toolbar-btn" id="btn-upload-media" title="Subir imagen/gif">📎 Media</button>
+        </div>
+        <div class="editor-panels">
+          <textarea id="post-content" class="editor-textarea" placeholder="Escribe desde tu interior más oscuro...&#10;&#10;Soporta Markdown: **negrita**, *cursiva*, # títulos, > citas, ```código```"></textarea>
+          <div id="editor-preview" class="editor-preview markdown-body"></div>
+        </div>
+        <div class="editor-toggle">
+          <button class="toggle-btn active" id="btn-write-mode">Escribir</button>
+          <button class="toggle-btn" id="btn-preview-mode">Preview</button>
+          <button class="toggle-btn" id="btn-split-mode">Split</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Música de fondo (YouTube ID)</label>
+        <div class="youtube-input-group">
+          <div class="youtube-preview" id="youtube-preview" style="display:none;">
+            <img id="youtube-thumb" src="" alt="thumbnail">
+            <span class="youtube-title" id="youtube-title"></span>
+            <button type="button" class="btn-remove-music" id="btn-remove-music">✕</button>
+          </div>
+          <div class="youtube-input-wrap" id="youtube-input-wrap">
+            <span class="youtube-icon">▶</span>
+            <input type="text" id="youtube-id-input" class="input-dark" placeholder="Pega el ID del video de YouTube (ej: dQw4w9WgXcQ)">
+          </div>
+          <p class="youtube-hint">Solo se reproducirá el audio, el video queda oculto</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="btn-draft">Guardar borrador</button>
+        <button type="button" class="btn btn-primary" id="btn-publish">
+          <span class="btn-glow"></span>
+          Publicar en la oscuridad
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <input type="file" id="media-upload-input" accept="image/*,gif/*" style="display:none;">
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNDERDARK — Constelación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="/css/constellation.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+
+  <nav class="navbar">
+    <a href="/" class="logo">
+      <span class="logo-glyph">⌬</span>
+      <span class="logo-text">UNDERDARK</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Escritos</a>
+      <a href="/constellation.html" class="nav-link active">Constelación</a>
+      <a href="/editor.html" class="nav-link btn-write">
+        <span class="btn-icon">✦</span> Escribir
+      </a>
+    </div>
+  </nav>
+
+  <main class="constellation-page">
+    <div class="constellation-controls">
+      <input type="text" id="constellation-search" placeholder="Buscar constelación..." class="search-input constellation-search">
+      <div id="constellation-tags" class="constellation-tags"></div>
+      <div class="constellation-zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Acercar">+</button>
+        <button class="zoom-btn" id="zoom-out" title="Alejar">−</button>
+        <button class="zoom-btn" id="zoom-reset" title="Resetear">⟲</button>
+      </div>
+    </div>
+
+    <canvas id="constellation-canvas"></canvas>
+
+    <div id="node-tooltip" class="node-tooltip" style="display:none;">
+      <div class="tooltip-cover" id="tooltip-cover"></div>
+      <h4 id="tooltip-title"></h4>
+      <p id="tooltip-excerpt"></p>
+      <div class="tooltip-meta">
+        <span id="tooltip-date"></span>
+        <span id="tooltip-tags"></span>
+      </div>
+    </div>
+
+    <div class="constellation-legend">
+      <div class="legend-item">
+        <span class="legend-dot" style="background: var(--neon-violet)"></span>
+        <span>Post</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line"></span>
+        <span>Tags compartidos</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot small" style="background: var(--neon-cyan)"></span>
+        <span>Tag</span>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/constellation.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+@keyframes glyph-pulse {
+  0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 8px var(--neon-violet-dim)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 15px var(--neon-violet)); }
+}
+
+@keyframes line-glow {
+  0%, 100% { opacity: 0.5; width: 60px; }
+  50% { opacity: 1; width: 100px; }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  20% { clip-path: inset(20% 0 60% 0); transform: translate(-3px, 1px); }
+  40% { clip-path: inset(50% 0 30% 0); transform: translate(3px, -1px); }
+  60% { clip-path: inset(70% 0 10% 0); transform: translate(-2px, 2px); }
+  80% { clip-path: inset(10% 0 80% 0); transform: translate(2px, -2px); }
+}
+
+@keyframes glitch-2 {
+  0%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  20% { clip-path: inset(60% 0 20% 0); transform: translate(3px, -1px); }
+  40% { clip-path: inset(10% 0 70% 0); transform: translate(-3px, 1px); }
+  60% { clip-path: inset(40% 0 40% 0); transform: translate(2px, -2px); }
+  80% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 2px); }
+}
+
+.hero-glitch {
+  position: relative;
+}
+
+.hero-glitch::before,
+.hero-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.hero-glitch:hover::before {
+  animation: glitch-1 0.3s linear;
+  color: var(--neon-cyan);
+  opacity: 0.8;
+  z-index: -1;
+}
+
+.hero-glitch:hover::after {
+  animation: glitch-2 0.3s linear;
+  color: var(--neon-red);
+  opacity: 0.8;
+  z-index: -1;
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.post-card {
+  animation: float-in 0.5s ease-out backwards;
+}
+
+.post-card:nth-child(1) { animation-delay: 0.05s; }
+.post-card:nth-child(2) { animation-delay: 0.1s; }
+.post-card:nth-child(3) { animation-delay: 0.15s; }
+.post-card:nth-child(4) { animation-delay: 0.2s; }
+.post-card:nth-child(5) { animation-delay: 0.25s; }
+.post-card:nth-child(6) { animation-delay: 0.3s; }
+.post-card:nth-child(7) { animation-delay: 0.35s; }
+.post-card:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes neon-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow:
+      0 0 4px var(--neon-violet),
+      0 0 11px var(--neon-violet),
+      0 0 19px var(--neon-violet),
+      0 0 40px var(--neon-violet);
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+  }
+}
+
+.logo-text:hover {
+  animation: neon-flicker 1.5s infinite alternate;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.btn-primary .btn-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+@keyframes border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.post-view {
+  animation: slide-up 0.6s ease-out;
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.hero-subtitle {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--neon-violet);
+  animation: typewriter 3s steps(60) 0.5s forwards, blink-caret 0.75s step-end infinite;
+  width: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--neon-violet); }
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNDERDARK — Pensamientos desde el abismo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+</head>
+<body>
+  <canvas id="particles-bg"></canvas>
+
+  <div class="noise-overlay"></div>
+
+  <nav class="navbar">
+    <a href="/" class="logo">
+      <span class="logo-glyph">⌬</span>
+      <span class="logo-text">UNDERDARK</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link active">Escritos</a>
+      <a href="/constellation.html" class="nav-link">Constelación</a>
+      <a href="/editor.html" class="nav-link btn-write">
+        <span class="btn-icon">✦</span> Escribir
+      </a>
+      <button class="nav-link btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <header class="hero">
+      <div class="hero-glitch" data-text="UNDERDARK">UNDERDARK</div>
+      <p class="hero-subtitle">Pensamientos, deseos y manifestaciones desde la oscuridad</p>
+      <div class="hero-line"></div>
+    </header>
+
+    <div class="filter-bar">
+      <input type="text" id="search-input" placeholder="Buscar en la oscuridad..." class="search-input">
+      <div id="tag-filters" class="tag-filters"></div>
+    </div>
+
+    <div id="posts-grid" class="posts-grid">
+      <div class="loading-state">
+        <div class="loading-orb"></div>
+        <p>Invocando los escritos...</p>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-glyph">⌬</div>
+      <h3>El vacío te espera</h3>
+      <p>No hay escritos aún. <a href="/editor.html">Inicia tu primer manifiesto</a>.</p>
+    </div>
+  </main>
+
+  <div class="music-player" id="music-player">
+    <div class="player-yt-thumb" id="player-yt-thumb"></div>
+    <div class="player-info">
+      <span class="player-title" id="player-title">Sin reproducir</span>
+      <span class="player-artist" id="player-artist">YouTube</span>
+    </div>
+    <div class="player-controls">
+      <button class="player-btn player-btn-main" id="btn-play" title="Play/Pause">▶</button>
+    </div>
+    <div class="player-progress">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="player-time" id="player-time">0:00 / 0:00</span>
+    </div>
+    <div class="player-volume">
+      <span class="volume-icon">🔊</span>
+      <input type="range" id="volume-slider" min="0" max="100" step="1" value="70" class="volume-slider">
+    </div>
+    <button class="player-btn player-close" id="btn-close-player" title="Cerrar">✕</button>
+  </div>
+
+  <div id="yt-player-hidden" class="yt-player-hidden"></div>
+  <audio id="global-audio" preload="metadata"></audio>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/effects.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNDERDARK — Post</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+</head>
+<body>
+  <canvas id="particles-bg"></canvas>
+  <div class="noise-overlay"></div>
+
+  <nav class="navbar">
+    <a href="/" class="logo">
+      <span class="logo-glyph">⌬</span>
+      <span class="logo-text">UNDERDARK</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Escritos</a>
+      <a href="/constellation.html" class="nav-link">Constelación</a>
+      <a href="/editor.html" class="nav-link btn-write">
+        <span class="btn-icon">✦</span> Escribir
+      </a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <article class="post-view" id="post-view">
+      <div class="loading-state">
+        <div class="loading-orb"></div>
+        <p>Abriendo el escrito...</p>
+      </div>
+    </article>
+  </main>
+
+  <div class="music-player" id="music-player">
+    <div class="player-yt-thumb" id="player-yt-thumb"></div>
+    <div class="player-info">
+      <span class="player-title" id="player-title">Sin reproducir</span>
+      <span class="player-artist" id="player-artist">YouTube</span>
+    </div>
+    <div class="player-controls">
+      <button class="player-btn player-btn-main" id="btn-play" title="Play/Pause">▶</button>
+    </div>
+    <div class="player-progress">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="player-time" id="player-time">0:00 / 0:00</span>
+    </div>
+    <div class="player-volume">
+      <span class="volume-icon">🔊</span>
+      <input type="range" id="volume-slider" min="0" max="100" step="1" value="70" class="volume-slider">
+    </div>
+    <button class="player-btn player-close" id="btn-close-player" title="Cerrar">✕</button>
+  </div>
+
+  <div id="yt-player-hidden" class="yt-player-hidden"></div>
+  <audio id="global-audio" preload="metadata"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/effects.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!checkAuth()) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) {
+        window.location.href = '/';
+        return;
+      }
+      try {
+        const res = await authFetch(`/api/posts/${id}`);
+        if (!res.ok) throw new Error('Post no encontrado');
+        const post = await res.json();
+        renderPost(post);
+        if (post.music) {
+          window.darkPlayer.addToQueue(post.music, post.title);
+        }
+      } catch (e) {
+        document.getElementById('post-view').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-glyph">⌬</div>
+            <h3>Escrito no encontrado</h3>
+            <p><a href="/">Volver al inicio</a></p>
+          </div>`;
+      }
+    });
+
+    function renderPost(post) {
+      const date = new Date(post.createdAt).toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      const tags = (post.tags || []).map(t =>
+        `<a href="/?tag=${t}" class="tag">#${t}</a>`
+      ).join('');
+      const coverHtml = post.coverImage
+        ? `<div class="post-cover"><img src="${post.coverImage}" alt="${post.title}"></div>`
+        : '';
+      const moodHtml = post.mood
+        ? `<div class="post-mood"><span class="mood-label">Estado:</span> ${post.mood}</div>`
+        : '';
+
+      const html = marked.parse(post.content || '');
+
+      document.getElementById('post-view').innerHTML = `
+        <a href="/" class="back-link">← Volver</a>
+        <header class="post-header">
+          <div class="post-meta">
+            <time>${date}</time>
+            ${moodHtml}
+          </div>
+          <h1 class="post-title" data-text="${post.title}">${post.title}</h1>
+          <div class="post-tags">${tags}</div>
+        </header>
+        ${coverHtml}
+        <div class="post-body markdown-body">${html}</div>
+        <footer class="post-footer">
+          <button class="btn-edit" onclick="window.location.href='/editor.html?id=${post.id}'">✎ Editar</button>
+          <button class="btn-delete" onclick="deletePost('${post.id}')">✕ Eliminar</button>
+        </footer>
+      `;
+    }
+
+    async function deletePost(id) {
+      if (!confirm('¿Eliminar este escrito para siempre?')) return;
+      await authFetch(`/api/posts/${id}`, { method: 'DELETE' });
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
