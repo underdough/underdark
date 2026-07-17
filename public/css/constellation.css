@@ -2,6 +2,7 @@
   position: relative;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -9,11 +10,14 @@
   width: 100%;
   height: 100%;
   cursor: grab;
+  touch-action: none;
 }
 
 #constellation-canvas:active {
   cursor: grabbing;
 }
+
+/* ========== CONTROLS ========== */
 
 .constellation-controls {
   position: fixed;
@@ -23,34 +27,38 @@
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .constellation-search {
-  width: 250px;
-  padding: 0.6rem 1rem;
-  background: rgba(18, 18, 28, 0.9);
-  backdrop-filter: blur(10px);
+  width: 220px;
+  padding: 0.5rem 0.8rem;
+  background: rgba(18, 18, 28, 0.92);
+  backdrop-filter: blur(12px);
+  font-size: 0.8rem;
 }
 
 .constellation-tags {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .constellation-tag {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  padding: 0.25rem 0.6rem;
-  background: rgba(18, 18, 28, 0.9);
-  backdrop-filter: blur(10px);
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(18, 18, 28, 0.92);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 15px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: var(--transition);
+  white-space: nowrap;
 }
 
 .constellation-tag:hover,
@@ -62,22 +70,23 @@
 
 .constellation-zoom-controls {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .zoom-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(18, 18, 28, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(18, 18, 28, 0.92);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -87,10 +96,12 @@
   color: var(--neon-violet);
 }
 
+/* ========== TOOLTIP ========== */
+
 .node-tooltip {
   position: fixed;
   z-index: 100;
-  width: 260px;
+  width: 240px;
   background: rgba(18, 18, 28, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-glow);
@@ -99,11 +110,12 @@
   overflow: hidden;
   pointer-events: none;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 30px var(--neon-violet-dim);
+  transition: opacity 0.15s ease;
 }
 
 .tooltip-cover {
   width: 100%;
-  height: 100px;
+  height: 80px;
   background: var(--bg-surface);
   background-size: cover;
   background-position: center;
@@ -111,14 +123,14 @@
 
 .node-tooltip h4 {
   font-family: var(--font-display);
-  font-size: 1rem;
-  padding: 0.7rem 0.8rem 0.2rem;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.7rem 0.15rem;
   color: var(--text-primary);
 }
 
 .node-tooltip p {
-  font-size: 0.8rem;
-  padding: 0 0.8rem;
+  font-size: 0.75rem;
+  padding: 0 0.7rem;
   color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -130,11 +142,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.8rem 0.7rem;
+  padding: 0.4rem 0.7rem 0.6rem;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
 }
+
+/* ========== LEGEND ========== */
 
 .constellation-legend {
   position: fixed;
@@ -142,55 +156,141 @@
   left: 1.5rem;
   z-index: 50;
   display: flex;
-  gap: 1.2rem;
+  gap: 1rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
+  background: rgba(18, 18, 28, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
 .legend-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   box-shadow: 0 0 6px currentColor;
 }
 
 .legend-dot.small {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 .legend-line {
-  width: 20px;
+  width: 16px;
   height: 1px;
   background: linear-gradient(90deg, var(--neon-violet-dim), var(--neon-violet));
 }
 
+/* ========== MOBILE ========== */
+
 @media (max-width: 768px) {
+  .constellation-page {
+    height: 100vh;
+    height: 100dvh;
+  }
+
   .constellation-controls {
     top: 4rem;
-    flex-direction: column;
-    align-items: stretch;
+    left: 0.5rem;
+    right: 0.5rem;
+    gap: 0.5rem;
   }
 
   .constellation-search {
     width: 100%;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .constellation-tags {
+    max-height: 36px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.25rem;
+    padding-bottom: 2px;
+  }
+
+  .constellation-tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  .constellation-tag {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.45rem;
+    flex-shrink: 0;
   }
 
   .constellation-zoom-controls {
-    margin-left: 0;
+    margin-left: auto;
+  }
+
+  .zoom-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+  }
+
+  .constellation-legend {
+    bottom: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
     justify-content: center;
+    font-size: 0.6rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .node-tooltip {
+    width: 200px;
+  }
+
+  .tooltip-cover {
+    height: 60px;
+  }
+
+  .node-tooltip h4 {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.6rem 0.1rem;
+  }
+
+  .node-tooltip p {
+    font-size: 0.7rem;
+    padding: 0 0.6rem;
+  }
+
+  .tooltip-meta {
+    font-size: 0.55rem;
+    padding: 0.3rem 0.6rem 0.5rem;
+  }
+}
+
+/* ========== TABLET ========== */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .constellation-controls {
+    top: 4.2rem;
+    left: 1rem;
+    right: 1rem;
+  }
+
+  .constellation-search {
+    width: 200px;
   }
 
   .constellation-legend {
     bottom: 1rem;
     left: 1rem;
-    font-size: 0.6rem;
   }
 }

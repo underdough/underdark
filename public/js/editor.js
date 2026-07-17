@@ -4,6 +4,8 @@ let coverUrl = '';
 let musicUrl = '';
 let autoSaveTimer = null;
 let lastContent = '';
+let lastTitle = '';
+let hasUnsavedChanges = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!checkAuth()) return;
@@ -25,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFocusMode();
   setupAutoSave();
   setupWordCount();
+  setupKeyboardShortcuts();
+  setupTabSupport();
+  setupUnsavedWarning();
   createSaveIndicator();
   createAutosaveIndicator();
 });
@@ -51,7 +56,7 @@ function showSaveIndicator(type = 'saving') {
 
   indicator.className = 'save-indicator show ' + type;
   indicator.querySelector('.save-text').textContent =
-    type === 'saving' ? 'Guardando...' : 'Guardado en la oscuridad';
+    type === 'saving' ? 'Guardando...' : type === 'error' ? 'Error al guardar' : 'Guardado en la oscuridad';
 
   if (type === 'success') {
     const wave = document.createElement('div');
@@ -83,6 +88,8 @@ async function loadPost(id) {
     document.getElementById('post-mood').value = post.mood || '';
     document.getElementById('post-content').value = post.content || '';
     lastContent = post.content || '';
+    lastTitle = post.title || '';
+    hasUnsavedChanges = false;
 
     if (post.coverImage) {
       coverUrl = post.coverImage;
@@ -94,11 +101,11 @@ async function loadPost(id) {
 
     if (post.music) {
       musicUrl = post.music;
-      document.getElementById('music-info').style.display = 'flex';
-      document.getElementById('music-placeholder').style.display = 'none';
-      const name = post.music.split('/').pop();
-      document.getElementById('music-name').textContent = name;
+      setYouTubeId(post.music);
     }
+
+    updateWordCount();
+    if (editMode === 'preview' || editMode === 'split') renderPreview();
   } catch (e) {
     console.error('Error loading post:', e);
   }
@@ -119,12 +126,18 @@ function setupToolbar() {
       const insertions = {
         bold: { before: '**', after: '**', placeholder: 'texto en negrita' },
         italic: { before: '*', after: '*', placeholder: 'texto en cursiva' },
-        heading: { before: '## ', after: '', placeholder: 'Título' },
+        strikethrough: { before: '~~', after: '~~', placeholder: 'texto tachado' },
+        heading1: { before: '# ', after: '', placeholder: 'Título 1' },
+        heading2: { before: '## ', after: '', placeholder: 'Título 2' },
+        heading3: { before: '### ', after: '', placeholder: 'Título 3' },
         link: { before: '[', after: '](url)', placeholder: 'texto del enlace' },
         image: { before: '![', after: '](url)', placeholder: 'descripción' },
         code: { before: '`', after: '`', placeholder: 'código' },
+        codeblock: { before: '```\n', after: '\n```', placeholder: 'código aquí' },
         quote: { before: '> ', after: '', placeholder: 'cita' },
-        list: { before: '- ', after: '', placeholder: 'elemento' }
+        list: { before: '- ', after: '', placeholder: 'elemento' },
+        checklist: { before: '- [ ] ', after: '', placeholder: 'tarea' },
+        hr: { before: '\n---\n', after: '', placeholder: '' }
       };
 
       const ins = insertions[action];
@@ -303,6 +316,7 @@ function setupEditorToggle() {
 
     if (mode === 'write') {
       btnWrite.classList.add('active');
+      textarea.focus();
     } else if (mode === 'preview') {
       btnPreview.classList.add('active');
       textarea.classList.add('hidden');
@@ -346,7 +360,7 @@ function setupSplitHandle() {
     const x = e.clientX - rect.left;
     const percent = (x / rect.width) * 100;
     const clamped = Math.max(20, Math.min(80, percent));
-    panels.style.gridTemplateColumns = `${clamped}px 4px 1fr`;
+    panels.style.gridTemplateColumns = `${clamped}% 4px 1fr`;
   });
 
   document.addEventListener('mouseup', () => {
@@ -360,9 +374,14 @@ function setupSplitHandle() {
 
 function setupMarkdownPreview() {
   const textarea = document.getElementById('post-content');
+  let previewTimer;
   textarea?.addEventListener('input', () => {
-    if (editMode !== 'write') renderPreview();
+    markUnsaved();
     updateWordCount();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      if (editMode !== 'write') renderPreview();
+    }, 150);
   });
 }
 
@@ -370,15 +389,20 @@ function renderPreview() {
   const textarea = document.getElementById('post-content');
   const preview = document.getElementById('editor-preview');
   if (textarea && preview && typeof marked !== 'undefined') {
-    const html = marked.parse(textarea.value || '*Nada que previsualizar...*');
-    preview.style.opacity = '0';
-    preview.style.transform = 'translateX(5px)';
+    const content = textarea.value;
+    if (!content.trim()) {
+      preview.innerHTML = '<p class="preview-empty">Escribí algo para ver la preview...</p>';
+      return;
+    }
+    const html = marked.parse(content);
+    preview.style.opacity = '0.5';
+    preview.style.transform = 'translateY(2px)';
     requestAnimationFrame(() => {
       preview.innerHTML = html;
       requestAnimationFrame(() => {
-        preview.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        preview.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
         preview.style.opacity = '1';
-        preview.style.transform = 'translateX(0)';
+        preview.style.transform = 'translateY(0)';
       });
     });
   }
@@ -403,6 +427,87 @@ function setupFocusMode() {
   });
 }
 
+function setupKeyboardShortcuts() {
+  const textarea = document.getElementById('post-content');
+  if (!textarea) return;
+
+  textarea.addEventListener('keydown', (e) => {
+    const isMod = e.ctrlKey || e.metaKey;
+
+    if (isMod && e.key === 'b') {
+      e.preventDefault();
+      wrapSelection(textarea, '**', '**');
+    } else if (isMod && e.key === 'i') {
+      e.preventDefault();
+      wrapSelection(textarea, '*', '*');
+    } else if (isMod && e.key === 'k') {
+      e.preventDefault();
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = textarea.value.substring(start, end);
+      const text = selected || 'texto del enlace';
+      textarea.setRangeText(`[${text}](url)`, start, end, 'select');
+      textarea.focus();
+      textarea.dispatchEvent(new Event('input'));
+    } else if (isMod && e.key === 'e') {
+      e.preventDefault();
+      wrapSelection(textarea, '`', '`');
+    } else if (isMod && e.shiftKey && e.key === 'X') {
+      e.preventDefault();
+      wrapSelection(textarea, '~~', '~~');
+    } else if (isMod && e.shiftKey && e.key === 'Q') {
+      e.preventDefault();
+      insertAtLineStart(textarea, '> ');
+    } else if (isMod && e.key === 's') {
+      e.preventDefault();
+      savePost(!currentPostId);
+    }
+  });
+}
+
+function wrapSelection(textarea, before, after) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.substring(start, end);
+  const text = selected || 'texto';
+  textarea.setRangeText(before + text + after, start, end, 'select');
+  textarea.focus();
+  textarea.dispatchEvent(new Event('input'));
+}
+
+function insertAtLineStart(textarea, prefix) {
+  const start = textarea.selectionStart;
+  const value = textarea.value;
+  const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+  textarea.setRangeText(prefix, lineStart, lineStart, 'end');
+  textarea.focus();
+  textarea.dispatchEvent(new Event('input'));
+}
+
+function setupTabSupport() {
+  const textarea = document.getElementById('post-content');
+  if (!textarea) return;
+
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      if (e.shiftKey) {
+        const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+        const lineText = textarea.value.substring(lineStart, start);
+        if (lineText.startsWith('  ')) {
+          textarea.setRangeText('', lineStart, lineStart + 2, 'end');
+        }
+      } else {
+        textarea.setRangeText('  ', start, end, 'end');
+      }
+      textarea.dispatchEvent(new Event('input'));
+    }
+  });
+}
+
 function setupAutoSave() {
   const textarea = document.getElementById('post-content');
   const titleInput = document.getElementById('post-title');
@@ -411,17 +516,12 @@ function setupAutoSave() {
     const content = textarea?.value || '';
     const title = titleInput?.value || '';
 
-    if (content === lastContent && !title) return;
+    if (content === lastContent && title === lastTitle) return;
+    if (!currentPostId) return;
     if (content.length < 10) return;
 
     clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(async () => {
-      if (!currentPostId) {
-        lastContent = content;
-        showAutosaveIndicator();
-        return;
-      }
-
       try {
         const tagsStr = document.getElementById('post-tags')?.value || '';
         const mood = document.getElementById('post-mood')?.value || '';
@@ -440,6 +540,8 @@ function setupAutoSave() {
           })
         });
         lastContent = content;
+        lastTitle = title;
+        hasUnsavedChanges = false;
         showAutosaveIndicator();
       } catch (e) {
         console.error('Auto-save error:', e);
@@ -451,11 +553,24 @@ function setupAutoSave() {
   titleInput?.addEventListener('input', triggerAutoSave);
 }
 
+function setupUnsavedWarning() {
+  window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+}
+
+function markUnsaved() {
+  hasUnsavedChanges = true;
+}
+
 function setupWordCount() {
   const counter = document.createElement('div');
   counter.className = 'word-count';
   counter.id = 'word-count';
-  counter.textContent = '0 palabras';
+  counter.innerHTML = '<span class="wc-words">0 palabras</span><span class="wc-sep">·</span><span class="wc-time">0 min de lectura</span>';
   document.body.appendChild(counter);
 
   const textarea = document.getElementById('post-content');
@@ -469,8 +584,10 @@ function updateWordCount() {
 
   const text = textarea.value.trim();
   const words = text ? text.split(/\s+/).length : 0;
-  const chars = text.length;
-  counter.textContent = `${words} palabras · ${chars} caracteres`;
+  const readingTime = Math.max(1, Math.ceil(words / 200));
+
+  counter.querySelector('.wc-words').textContent = `${words} palabras`;
+  counter.querySelector('.wc-time').textContent = `${readingTime} min de lectura`;
 }
 
 function setupSaveButtons() {
@@ -486,7 +603,9 @@ async function savePost(publish) {
   const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
 
   if (!title) {
-    alert('Escribe un título para tu escrito.');
+    document.getElementById('post-title').focus();
+    document.getElementById('post-title').classList.add('input-error');
+    setTimeout(() => document.getElementById('post-title').classList.remove('input-error'), 1500);
     return;
   }
 
@@ -512,6 +631,8 @@ async function savePost(publish) {
 
     const post = await res.json();
     lastContent = content;
+    lastTitle = title;
+    hasUnsavedChanges = false;
 
     showSaveIndicator('success');
 
@@ -522,6 +643,7 @@ async function savePost(publish) {
     } else {
       currentPostId = post.id;
       document.getElementById('editor-title').textContent = 'Editar Escrito';
+      history.replaceState(null, '', `/editor.html?id=${post.id}`);
     }
   } catch (e) {
     console.error('Save error:', e);

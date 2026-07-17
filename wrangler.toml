@@ -1,2 +1,6 @@
 name = "underdark"
 pages_build_output_dir = "public"
+
+[[kv_namespaces]]
+binding = "POSTS"
+id = "35c7afab19784f35a13c47f9bb11f38e"

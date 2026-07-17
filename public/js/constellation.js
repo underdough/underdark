@@ -15,6 +15,11 @@ class ConstellationMap {
     this.hoveredNode = null;
     this.activeTagFilter = null;
     this.time = 0;
+    this.dpr = window.devicePixelRatio || 1;
+    this.pinchStartDist = 0;
+    this.pinchStartZoom = 1;
+    this.touchStartTime = 0;
+    this.touchMoved = false;
 
     this.resize();
     this.initBgStars();
@@ -24,8 +29,12 @@ class ConstellationMap {
   }
 
   resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    const rect = this.canvas.getBoundingClientRect();
+    this.canvas.width = rect.width * this.dpr;
+    this.canvas.height = rect.height * this.dpr;
+    this.ctx.scale(this.dpr, this.dpr);
+    this.width = rect.width;
+    this.height = rect.height;
   }
 
   initBgStars() {
@@ -63,9 +72,9 @@ class ConstellationMap {
     this.edges = [];
     this.tagNodes = [];
 
-    const centerX = this.canvas.width / 2;
-    const centerY = this.canvas.height / 2;
-    const postRadius = Math.min(this.canvas.width, this.canvas.height) * 0.3;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const postRadius = Math.min(this.width, this.height) * 0.3;
 
     posts.forEach((post, i) => {
       const angle = (i / posts.length) * Math.PI * 2 - Math.PI / 2;
@@ -97,7 +106,7 @@ class ConstellationMap {
     let tagIndex = 0;
     tagSet.forEach(tag => {
       const angle = (tagIndex / tagSet.size) * Math.PI * 2;
-      const tagRadius = Math.min(this.canvas.width, this.canvas.height) * 0.15;
+      const tagRadius = Math.min(this.width, this.height) * 0.15;
       this.tagNodes.push({
         id: `tag-${tag}`,
         type: 'tag',
@@ -161,8 +170,12 @@ class ConstellationMap {
     const container = document.getElementById('constellation-tags');
     if (!container) return;
     container.innerHTML = tags.map(t =>
-      `<button class="constellation-tag" data-tag="${t.name}" onclick="constellation.filterByTag('${t.name}')">#${t.name}</button>`
+      `<button class="constellation-tag" data-tag="${t.name}">#${t.name}</button>`
     ).join('');
+
+    container.querySelectorAll('.constellation-tag').forEach(btn => {
+      btn.addEventListener('click', () => this.filterByTag(btn.dataset.tag));
+    });
   }
 
   filterByTag(tag) {
@@ -177,91 +190,137 @@ class ConstellationMap {
   }
 
   bindEvents() {
-    window.addEventListener('resize', () => this.resize());
-
-    this.canvas.addEventListener('mousedown', (e) => {
-      const node = this.getNodeAt(e.clientX, e.clientY);
-      if (node) {
-        this.dragNode = node;
-        this.isDragging = true;
-      } else {
-        this.isDragging = true;
-        this.dragNode = null;
-      }
-      this.lastMouse = { x: e.clientX, y: e.clientY };
+    window.addEventListener('resize', () => {
+      this.dpr = window.devicePixelRatio || 1;
+      this.resize();
     });
 
-    this.canvas.addEventListener('mousemove', (e) => {
-      const dx = e.clientX - this.lastMouse.x;
-      const dy = e.clientY - this.lastMouse.y;
-
-      if (this.isDragging && this.dragNode) {
-        this.dragNode.x += dx / this.zoom;
-        this.dragNode.y += dy / this.zoom;
-      } else if (this.isDragging) {
-        this.offsetX += dx;
-        this.offsetY += dy;
-      }
-
-      this.lastMouse = { x: e.clientX, y: e.clientY };
-
-      const hovered = this.getNodeAt(e.clientX, e.clientY);
-      if (hovered !== this.hoveredNode) {
-        this.hoveredNode = hovered;
-        this.updateTooltip(e.clientX, e.clientY, hovered);
-        this.canvas.style.cursor = hovered ? 'pointer' : (this.isDragging ? 'grabbing' : 'grab');
-      }
-
-      if (this.hoveredNode) {
-        this.updateTooltipPosition(e.clientX, e.clientY);
-      }
-    });
-
-    this.canvas.addEventListener('mouseup', () => {
-      if (this.hoveredNode && this.hoveredNode.type === 'post' && !this.dragNode) {
-        window.location.href = `/post.html?id=${this.hoveredNode.id}`;
-      }
-      this.isDragging = false;
-      this.dragNode = null;
-    });
-
-    this.canvas.addEventListener('mouseleave', () => {
-      this.isDragging = false;
-      this.dragNode = null;
-      this.hoveredNode = null;
-      this.hideTooltip();
-    });
-
+    // Mouse events
+    this.canvas.addEventListener('mousedown', (e) => this.onPointerDown(e.clientX, e.clientY));
+    this.canvas.addEventListener('mousemove', (e) => this.onPointerMove(e.clientX, e.clientY));
+    this.canvas.addEventListener('mouseup', (e) => this.onPointerUp(e.clientX, e.clientY));
+    this.canvas.addEventListener('mouseleave', () => this.onPointerLeave());
     this.canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
+      const zoomFactor = e.deltaY > 0 ? 0.93 : 1.07;
       this.zoom = Math.max(0.3, Math.min(3, this.zoom * zoomFactor));
     }, { passive: false });
 
-    this.canvas.addEventListener('click', (e) => {
-      const node = this.getNodeAt(e.clientX, e.clientY);
-      if (node && node.type === 'post') {
-        window.location.href = `/post.html?id=${node.id}`;
+    // Touch events
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        this.touchStartTime = Date.now();
+        this.touchMoved = false;
+        this.onPointerDown(touch.clientX, touch.clientY);
+      } else if (e.touches.length === 2) {
+        this.isDragging = false;
+        this.dragNode = null;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        this.pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+        this.pinchStartZoom = this.zoom;
       }
-    });
+    }, { passive: false });
 
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        this.touchMoved = true;
+        this.onPointerMove(touch.clientX, touch.clientY);
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (this.pinchStartDist > 0) {
+          this.zoom = Math.max(0.3, Math.min(3, this.pinchStartZoom * (dist / this.pinchStartDist)));
+        }
+      }
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 0) {
+        if (!this.touchMoved && Date.now() - this.touchStartTime < 300) {
+          const node = this.hoveredNode;
+          if (node && node.type === 'post') {
+            window.location.href = `/post.html?id=${node.id}`;
+          }
+        }
+        this.onPointerUp(this.lastMouse.x, this.lastMouse.y);
+        this.pinchStartDist = 0;
+      }
+    }, { passive: false });
+
+    // Zoom buttons
     document.getElementById('zoom-in')?.addEventListener('click', () => {
       this.zoom = Math.min(3, this.zoom * 1.2);
     });
-
     document.getElementById('zoom-out')?.addEventListener('click', () => {
       this.zoom = Math.max(0.3, this.zoom / 1.2);
     });
-
     document.getElementById('zoom-reset')?.addEventListener('click', () => {
       this.zoom = 1;
       this.offsetX = 0;
       this.offsetY = 0;
     });
 
+    // Search
     document.getElementById('constellation-search')?.addEventListener('input', (e) => {
       this.searchFilter = e.target.value.toLowerCase();
     });
+  }
+
+  onPointerDown(x, y) {
+    const node = this.getNodeAt(x, y);
+    if (node) {
+      this.dragNode = node;
+      this.isDragging = true;
+    } else {
+      this.isDragging = true;
+      this.dragNode = null;
+    }
+    this.lastMouse = { x, y };
+  }
+
+  onPointerMove(x, y) {
+    const dx = x - this.lastMouse.x;
+    const dy = y - this.lastMouse.y;
+
+    if (this.isDragging && this.dragNode) {
+      this.dragNode.x += dx / this.zoom;
+      this.dragNode.y += dy / this.zoom;
+    } else if (this.isDragging) {
+      this.offsetX += dx;
+      this.offsetY += dy;
+    }
+
+    this.lastMouse = { x, y };
+
+    const hovered = this.getNodeAt(x, y);
+    if (hovered !== this.hoveredNode) {
+      this.hoveredNode = hovered;
+      this.updateTooltip(x, y, hovered);
+      this.canvas.style.cursor = hovered ? 'pointer' : (this.isDragging ? 'grabbing' : 'grab');
+    }
+
+    if (this.hoveredNode) {
+      this.updateTooltipPosition(x, y);
+    }
+  }
+
+  onPointerUp(x, y) {
+    this.isDragging = false;
+    this.dragNode = null;
+  }
+
+  onPointerLeave() {
+    this.isDragging = false;
+    this.dragNode = null;
+    this.hoveredNode = null;
+    this.hideTooltip();
   }
 
   getNodeAt(mx, my) {
@@ -271,7 +330,8 @@ class ConstellationMap {
       const sx = n.x * this.zoom + this.offsetX;
       const sy = n.y * this.zoom + this.offsetY;
       const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
-      if (dist < (n.size + 5) * this.zoom) return n;
+      const hitSize = (n.size + 8) * this.zoom;
+      if (dist < Math.max(hitSize, 20)) return n;
     }
     return null;
   }
@@ -305,10 +365,19 @@ class ConstellationMap {
   updateTooltipPosition(x, y) {
     const tooltip = document.getElementById('node-tooltip');
     if (!tooltip) return;
-    let tx = x + 15;
-    let ty = y - 10;
-    if (tx + 270 > window.innerWidth) tx = x - 270;
-    if (ty + 200 > window.innerHeight) ty = y - 200;
+
+    const tipW = tooltip.offsetWidth || 240;
+    const tipH = tooltip.offsetHeight || 180;
+    const margin = 12;
+
+    let tx = x + margin;
+    let ty = y - margin;
+
+    if (tx + tipW > window.innerWidth - margin) tx = x - tipW - margin;
+    if (ty + tipH > window.innerHeight - margin) ty = y - tipH;
+    if (ty < margin) ty = margin;
+    if (tx < margin) tx = margin;
+
     tooltip.style.left = tx + 'px';
     tooltip.style.top = ty + 'px';
   }
@@ -320,9 +389,12 @@ class ConstellationMap {
 
   animate() {
     this.time += 0.016;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const w = this.width;
+    const h = this.height;
 
-    this.drawBgStars();
+    this.ctx.clearRect(0, 0, w, h);
+
+    this.drawBgStars(w, h);
 
     this.ctx.save();
     this.ctx.translate(this.offsetX, this.offsetY);
@@ -337,13 +409,13 @@ class ConstellationMap {
     requestAnimationFrame(() => this.animate());
   }
 
-  drawBgStars() {
+  drawBgStars(w, h) {
     this.bgStars.forEach(star => {
       const twinkle = Math.sin(this.time * star.twinkleSpeed * 60 + star.twinkleOffset) * 0.3 + 0.7;
       const sx = (star.x * 0.5) + this.offsetX * 0.2;
       const sy = (star.y * 0.5) + this.offsetY * 0.2;
       this.ctx.beginPath();
-      this.ctx.arc(sx % this.canvas.width, sy % this.canvas.height, star.size, 0, Math.PI * 2);
+      this.ctx.arc(sx % w, sy % h, star.size, 0, Math.PI * 2);
       this.ctx.fillStyle = `rgba(200, 200, 230, ${star.brightness * twinkle})`;
       this.ctx.fill();
     });
