@@ -19,10 +19,22 @@ const POSTS_FILE = path.join(DATA, 'posts.json');
 const UPLOADS_DIR = path.join(PUBLIC, 'media', 'uploads');
 const MUSIC_DIR = path.join(PUBLIC, 'media', 'music');
 
-const authConfig = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
-
+if (!fs.existsSync(DATA)) fs.mkdirSync(DATA, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(MUSIC_DIR)) fs.mkdirSync(MUSIC_DIR, { recursive: true });
+
+if (!fs.existsSync(AUTH_FILE)) {
+  fs.writeFileSync(AUTH_FILE, JSON.stringify({
+    passphrase: process.env.UNDERDARK_PASSPHRASE || 'oscuridad',
+    tokenSecret: process.env.UNDERDARK_SECRET || crypto.randomBytes(32).toString('hex'),
+    tokenExpiry: 86400
+  }, null, 2));
+}
+if (!fs.existsSync(POSTS_FILE)) {
+  fs.writeFileSync(POSTS_FILE, '[]');
+}
+
+const authConfig = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
 
 app.use(cors());
 app.use(cookieParser());
