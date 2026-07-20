@@ -23,21 +23,24 @@ export async function onRequestPost(context) {
     return json({ error: 'No se proporcionó archivo' }, 400);
   }
 
-  // Cloudflare Pages doesn't have filesystem access.
-  // For file uploads, you need Cloudflare R2 storage.
-  // Set up R2 bucket and add binding in wrangler.toml:
-  //
-  // [[r2_buckets]]
-  // binding = "MEDIA"
-  // bucket_name = "underdark-media"
-  //
-  // Then uncomment the R2 code below:
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  if (!allowedTypes.includes(file.type)) {
+    return json({ error: 'Tipo de archivo no permitido. Usa JPEG, PNG, GIF, WebP o SVG.' }, 400);
+  }
 
-  // const ext = file.name.split('.').pop();
-  // const key = `${crypto.randomUUID()}.${ext}`;
-  // await env.MEDIA.put(key, file, { httpMetadata: { contentType: file.type } });
-  // const url = `https://your-r2-domain/${key}`;
-  // return json({ url, filename: key, mimetype: file.type });
+  const MAX_SIZE = 500 * 1024;
+  if (file.size > MAX_SIZE) {
+    return json({ error: 'Imagen muy grande. Máximo 500KB. Comprimí la imagen e intentá de nuevo.' }, 400);
+  }
 
-  return json({ error: 'Uploads requieren Cloudflare R2. Configura un bucket R2 y descomenta el código en functions/api/upload.js' }, 501);
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+  const dataUrl = `data:${file.type};base64,${base64}`;
+
+  return json({ url: dataUrl, filename: file.name, mimetype: file.type, size: file.size });
 }

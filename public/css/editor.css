@@ -241,6 +241,13 @@ select.input-dark option {
 
 .upload-placeholder p { font-size: 0.85rem; }
 
+.upload-hint {
+  font-size: 0.7rem !important;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+}
+
 .cover-preview {
   width: 100%;
   max-height: 200px;

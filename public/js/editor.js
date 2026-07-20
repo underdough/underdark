@@ -274,9 +274,15 @@ function setupDropZone(zoneId, inputId, callback) {
 
   input.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const url = await uploadFile(file);
-      if (url) callback(url);
+    if (!file) return;
+
+    const localUrl = URL.createObjectURL(file);
+    callback(localUrl);
+
+    const url = await uploadFile(file);
+    if (url) {
+      callback(url);
+      URL.revokeObjectURL(localUrl);
     }
   });
 }
